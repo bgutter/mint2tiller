@@ -1,0 +1,32 @@
+#+Title: mint2tiller
+
+This is a script to convert a transactions export from Mint into a CSV which is compatible with the default Tiller Money spreadsheet template. It will also attempt to deduplicate any transactions which appear in both the Mint export and Tiller's initial data pull.
+
+Unsupported/unmaintained/no warranty. But it worked for me.
+
+*Workflow*
+
+1. Set up Tiller Money with all of your accounts.
+2. Once you have a Google Sheet with your initial data sync (~90 days of data, varying by account), download it as a CSV.
+3. Download all of your transactions from Mint as a CSV.
+4. Run this script, creating "merged.csv".
+   1. Recommend to use --verbose and review the output carefully
+5. Upload merged.csv to Google Drive as a new spreadsheet
+6. Double check that everything looks okay
+7. Cut/paste into the transactions page on your Tiller Google Sheet.
+
+*CLI*
+
+#+begin_src sh
+python -m mint2tiller --mint_csv_path=/path/to/mint/transactions.csv --tiller_initial_csv_path=/path/to/initial/tiller/transactions.csv --output_path=/path/to/output.csv --verbose
+#+end_src
+
+*More*
+
+If you know python, there's an argument to =read_from_mint()= which allows you to arbitrarily remap Mint category names to Tiller Money category names. I ended up not using this, but maybe it works.
+
+*How it Works*
+
+Basically, on a per-account basis, it attempts to determine the cutoff date where Tiller no longer has data. In a window around that date, it tries to match transactions between Mint and Tiller. Transactions without matches are passed to the output CSV. When there is a match, the Tiller transaction is written to CSV, and the Mint duplicate is dropped.
+
+Matches are made based on amount (which should always match). Among all Mint <-> Tiller transactions with the same account name and amount, an alignment is chosen which minimizes the error in terms of transaction date (which for some reason does differ between Mint and Tiller). Description is ignored. Amount and Date are unique enough that this seems to work fairly well, but it will be pretty slow if you have many transactions.
